@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SVS State Officer App | SVS 관직 예약 시스템</title>
+
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SVS Officer">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Tailwind CSS & FontAwesome Icons CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+    
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input, select, textarea {
+      user-select: text;
+    }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      overscroll-behavior-y: none;
+      background-color: #030712;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+
+    .app-tab-content {
+      display: none;
+    }
+    .app-tab-content.active {
+      display: block;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideDown {
+      from { transform: translate(-50%, -100%); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+
+    .toast-anim {
+      animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Custom Toast Container -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-md space-y-2 pointer-events-none"></div>
+
+  <!-- 앱 상단 헤더 / App Top Header Bar -->
+  <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 px-4 py-3 shadow-lg">
+    <div class="max-w-4xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-2.5">
+        <div class="bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 p-2 rounded-xl shadow-md">
+          <i class="fa-solid fa-crown text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-amber-400 leading-tight">SVS Office App</h1>
+          <p class="text-[10px] text-slate-400">SVS 관직 실시간 예약 & 관리 (Bilingual)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- UTC Clock Badge -->
+        <div class="flex items-center gap-1.5 text-xs bg-slate-950 px-2.5 py-1 rounded-full border border-slate-800 text-amber-300 font-mono shadow-inner">
+          <i class="fa-regular fa-clock text-amber-400 text-[11px]"></i>
+          <span id="current-utc-time">00:00:00</span> <span class="text-[9px] text-slate-500">UTC</span>
+        </div>
+
+        <!-- Admin Toggle Button -->
+        <button id="admin-login-btn" onclick="promptAdminLogin()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 transition-all text-xs" title="Admin Login">
+          <i class="fa-solid fa-user-shield"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- PWA 홈 화면 추가 안내 바 / Mobile PWA Banner -->
+  <div id="pwa-install-banner" class="bg-gradient-to-r from-amber-500/20 via-slate-900 to-amber-500/20 border-b border-amber-500/30 px-4 py-2 text-xs flex justify-between items-center">
+    <div class="flex items-center gap-2 text-amber-200">
+      <i class="fa-solid fa-mobile-screen-button text-amber-400 animate-pulse"></i>
+      <span>홈 화면에 추가하여 앱처럼 사용하세요! (Add to Home Screen for App experience)</span>
+    </div>
+    <button onclick="dismissPwaBanner()" class="text-slate-400 hover:text-white px-1.5"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <!-- 메인 컨텐츠 영역 / Main Container -->
+  <main class="max-w-4xl mx-auto w-full px-4 py-4 flex-grow mb-16">
+
+    <!-- TAB 1: 프로필 및 예약 신청 / Reserve Tab -->
+    <div id="tab-reserve" class="app-tab-content active space-y-4">
+      
+      <!-- STEP 1: 신청자 프로필 카드 -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-3">
+          <h2 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+            <i class="fa-solid fa-id-card text-amber-500"></i> STEP 1. 신청자 정보 (User Profile)
+          </h2>
+          <span id="profile-saved-badge" class="hidden text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">
+            <i class="fa-solid fa-check mr-1"></i>입력됨 (Saved)
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">동맹 태그/이름 (Alliance Tag/Name) <span class="text-amber-400">*</span></label>
+            <input type="text" id="user-alliance" placeholder="예: [SVS] Top Alliance" oninput="onProfileChange()"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400 transition-colors">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">영주 닉네임 (Lord Nickname) <span class="text-amber-400">*</span></label>
+            <input type="text" id="user-nickname" placeholder="예: LordAres" oninput="onProfileChange()"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400 transition-colors">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">게임 ID (Game ID - Optional)</label>
+            <input type="text" id="user-gameid" placeholder="예: 98765432" oninput="onProfileChange()"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400 transition-colors">
+          </div>
+        </div>
+
+        <!-- 보유 자원 및 가속 입력 collapse -->
+        <details class="mt-3 pt-2 border-t border-slate-800/80 group">
+          <summary class="text-xs text-slate-400 font-medium cursor-pointer flex justify-between items-center py-1 hover:text-amber-300">
+            <span><i class="fa-solid fa-cubes text-amber-400 mr-1.5"></i>보유 자원 및 가속 추가 입력 (Resource/Speedups - Optional)</span>
+            <i class="fa-solid fa-chevron-down text-[10px] group-open:rotate-180 transition-transform"></i>
+          </summary>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-3">
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">제련불수 (Smelt FC)</label>
+              <input type="number" id="user-smelt-fire" min="0" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">불수가루 (FC Dust)</label>
+              <input type="number" id="user-fire-dust" min="0" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">연구가속 (Research Mins)</label>
+              <input type="number" id="user-research-speed" min="0" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">훈련가속 (Train Mins)</label>
+              <input type="number" id="user-train-speed" min="0" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">공용가속 (General Mins)</label>
+              <input type="number" id="user-common-speed" min="0" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100">
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- STEP 2: 관직 카드 모바일 스와이프 카드시트 -->
+      <div class="space-y-3">
+        <h2 class="text-sm font-bold text-amber-400 flex items-center justify-between">
+          <span><i class="fa-solid fa-calendar-check mr-1.5"></i> STEP 2. 관직 예약 선택 (Select Office Slot)</span>
+          <span class="text-[11px] font-normal text-slate-400">관직당 30분 / 30m per slot</span>
+        </h2>
+
+        <!-- 월요일 건설 카드 -->
+        <div class="bg-gradient-to-r from-slate-900 to-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">월요일 (Mon)</span>
+              <span class="text-[11px] text-slate-400">건설 버프 (Construction)</span>
+            </div>
+            <h3 class="text-sm font-bold text-white">부집행관 (Vice President - Build)</h3>
+          </div>
+          <div class="flex gap-2">
+            <select id="slot-mon" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-400">
+            </select>
+            <button onclick="bookOffice('부집행관(월_건설)', 'slot-mon')" class="whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow">
+              예약 (Book)
+            </button>
+          </div>
+        </div>
+
+        <!-- 화요일 연구 카드 -->
+        <div class="bg-gradient-to-r from-slate-900 to-blue-950/30 border border-blue-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[11px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/30">화요일 (Tue)</span>
+              <span class="text-[11px] text-slate-400">연구 버프 (Research)</span>
+            </div>
+            <h3 class="text-sm font-bold text-white">부집행관 (Vice President - Research)</h3>
+          </div>
+          <div class="flex gap-2">
+            <select id="slot-tue" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-400">
+            </select>
+            <button onclick="bookOffice('부집행관(화_연구)', 'slot-tue')" class="whitespace-nowrap bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow">
+              예약 (Book)
+            </button>
+          </div>
+        </div>
+
+        <!-- 목요일 훈련 카드 -->
+        <div class="bg-gradient-to-r from-slate-900 to-purple-950/30 border border-purple-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[11px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/30">목요일 (Thu)</span>
+              <span class="text-[11px] text-slate-400">훈련 버프 (Training)</span>
+            </div>
+            <h3 class="text-sm font-bold text-white">교육부장관 (Minister of Ed - Training)</h3>
+          </div>
+          <div class="flex gap-2">
+            <select id="slot-thu" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-purple-400">
+            </select>
+            <button onclick="bookOffice('교육부(목_훈련)', 'slot-thu')" class="whitespace-nowrap bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow">
+              예약 (Book)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: 실시간 예약 현황표 / Live Status Tab -->
+    <div id="tab-status" class="app-tab-content space-y-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <div class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-3 gap-2 mb-3">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-amber-400"></i> 실시간 통합 예약 현황표 (Live Reservations)
+          </h2>
+          <span id="admin-indicator" class="hidden text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
+            <i class="fa-solid fa-shield-halved mr-1"></i>Admin Mode
+          </span>
+        </div>
+
+        <!-- 필터 칩 바 -->
+        <div class="flex gap-1.5 overflow-x-auto pb-2 mb-2 text-xs">
+          <button class="filter-btn shrink-0 bg-amber-500 text-slate-950 px-3 py-1 rounded-full font-bold transition-all" data-filter="all">전체 (All)</button>
+          <button class="filter-btn shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-full font-medium transition-all" data-filter="부집행관(월_건설)">월_건설 (Mon)</button>
+          <button class="filter-btn shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-full font-medium transition-all" data-filter="부집행관(화_연구)">화_연구 (Tue)</button>
+          <button class="filter-btn shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-full font-medium transition-all" data-filter="교육부(목_훈련)">목_훈련 (Thu)</button>
+        </div>
+
+        <!-- 예약 카드리스트 -->
+        <div id="reservation-mobile-list" class="space-y-2.5"></div>
+
+        <div id="empty-state" class="hidden text-center py-10 text-slate-500 text-xs">
+          <i class="fa-solid fa-calendar-xmark text-3xl mb-2 block text-slate-600"></i>
+          등록된 예약이 없습니다. (No reservations found)
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: 내 예약 관리 / My Bookings Tab -->
+    <div id="tab-my" class="app-tab-content space-y-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <h2 class="text-sm font-bold text-amber-400 flex items-center gap-2 border-b border-slate-800 pb-3 mb-3">
+          <i class="fa-solid fa-user-check"></i> 내가 예약한 내역 (My Reserved Slots)
+        </h2>
+        <p class="text-xs text-slate-400 mb-3">
+          STEP 1에 입력하신 영주 닉네임 기준 내역만 표시되며, 본인 예약만 취소할 수 있습니다.<br>
+          <span class="text-[11px] text-slate-500">(Only personal slots based on Lord Nickname in STEP 1 are shown here)</span>
+        </p>
+
+        <div id="my-reservation-list" class="space-y-2.5"></div>
+
+        <div id="my-empty-state" class="hidden text-center py-10 text-slate-500 text-xs">
+          <i class="fa-solid fa-bookmark text-3xl mb-2 block text-slate-600"></i>
+          내 예약 내역이 없습니다. (No personal bookings)
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 하단 탭 바 / Mobile Native App Bottom Navigation -->
+  <nav class="fixed bottom-0 inset-x-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 z-40 px-6 py-2">
+    <div class="max-w-md mx-auto flex justify-between items-center text-center">
+      <button onclick="switchTab('reserve')" id="nav-btn-reserve" class="nav-btn active flex flex-col items-center gap-1 text-amber-400 transition-colors w-1/3">
+        <i class="fa-solid fa-calendar-plus text-lg"></i>
+        <span class="text-[10px] font-medium">관직예약 (Book)</span>
+      </button>
+
+      <button onclick="switchTab('status')" id="nav-btn-status" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-amber-300 transition-colors w-1/3">
+        <i class="fa-solid fa-list-ol text-lg"></i>
+        <span class="text-[10px] font-medium">전체현황 (Live)</span>
+      </button>
+
+      <button onclick="switchTab('my')" id="nav-btn-my" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-amber-300 transition-colors w-1/3 relative">
+        <i class="fa-solid fa-user-clock text-lg"></i>
+        <span class="text-[10px] font-medium">내예약 (My)</span>
+        <span id="my-count-badge" class="hidden absolute top-0 right-6 bg-amber-500 text-slate-950 text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- CUSTOM MODALS (Replaces alert, confirm, prompt) -->
+  <!-- Confirm Modal -->
+  <div id="custom-confirm-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-xs w-full shadow-2xl space-y-4">
+      <div class="flex items-center gap-2 text-amber-400 font-bold text-sm">
+        <i class="fa-solid fa-circle-question"></i>
+        <span id="confirm-modal-title">확인 (Confirmation)</span>
+      </div>
+      <p id="confirm-modal-msg" class="text-xs text-slate-300 leading-relaxed"></p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="confirm-btn-cancel" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition-colors">취소 (Cancel)</button>
+        <button id="confirm-btn-ok" class="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors">확인 (Confirm)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Password Modal -->
+  <div id="admin-pass-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-xs w-full shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <span class="text-sm font-bold text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-lock"></i> 관리자 로그인 (Admin)
+        </span>
+        <button onclick="closeAdminPassModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div>
+        <label class="block text-[11px] text-slate-400 mb-1">비밀번호 입력 (Password)</label>
+        <input type="password" id="admin-pass-input" placeholder="기본 / Default: 1234" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400">
+      </div>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeAdminPassModal()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300">취소</button>
+        <button onclick="submitAdminLogin()" class="px-4 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs">로그인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Slot Edit Modal -->
+  <div id="admin-time-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left"></i> 시간 변경 (Change Slot - Admin)
+        </h3>
+        <button onclick="closeAdminModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+      </div>
+
+      <div>
+        <p id="modal-info-text" class="text-xs text-slate-300 mb-3 bg-slate-950 p-2.5 rounded-xl border border-slate-800"></p>
+        <label class="block text-[11px] text-slate-400 mb-1">새로운 시간대 선택 (New Slot UTC)</label>
+        <select id="modal-time-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400">
+        </select>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-1">
+        <button onclick="closeAdminModal()" class="px-3 py-1.5 rounded-xl bg-slate-800 text-xs font-bold transition-colors">취소</button>
+        <button onclick="saveAdminTimeChange()" class="px-3.5 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold transition-colors">저장 (Save)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    // State Initialization
+    let reservations = JSON.parse(localStorage.getItem('svs_reservations_data')) || [
+      {
+        id: 'sample-1',
+        alliance: '[SVS] Top Alliance',
+        nickname: 'Ares',
+        gameId: '98765432',
+        smeltFire: '10',
+        fireDust: '500',
+        researchSpeed: '1200',
+        trainSpeed: '600',
+        commonSpeed: '3000',
+        buff: '부집행관(월_건설)',
+        time: 'Mon (월) UTC 02:00',
+        duration: '30'
+      }
+    ];
+
+    let currentFilter = 'all';
+    let isAdmin = false;
+    let activeTargetDocId = null;
+    let activeTargetBuff = null;
+    let confirmCallback = null;
+
+    /* Custom Toast Function (Replaces alert) */
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let borderBg = 'border-amber-500/50 bg-slate-900 text-amber-200';
+      let icon = 'fa-circle-info text-amber-400';
+
+      if (type === 'success') {
+        borderBg = 'border-emerald-500/50 bg-slate-900 text-emerald-200';
+        icon = 'fa-circle-check text-emerald-400';
+      } else if (type === 'error') {
+        borderBg = 'border-red-500/50 bg-slate-900 text-red-200';
+        icon = 'fa-circle-exclamation text-red-400';
+      }
+
+      toast.className = `toast-anim flex items-center gap-2.5 px-4 py-3 rounded-2xl border shadow-2xl text-xs font-medium backdrop-blur-md ${borderBg} pointer-events-auto`;
+      toast.innerHTML = `<i class="fa-solid ${icon} text-base shrink-0"></i><div>${message}</div>`;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease-out';
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    /* Custom Confirm Modal (Replaces confirm) */
+    function showConfirmModal(message, onConfirm) {
+      document.getElementById('confirm-modal-msg').innerHTML = message;
+      confirmCallback = onConfirm;
+      document.getElementById('custom-confirm-modal').classList.remove('hidden');
+    }
+
+    document.getElementById('confirm-btn-ok').onclick = function() {
+      document.getElementById('custom-confirm-modal').classList.add('hidden');
+      if (confirmCallback) confirmCallback();
+    };
+
+    document.getElementById('confirm-btn-cancel').onclick = function() {
+      document.getElementById('custom-confirm-modal').classList.add('hidden');
+    };
+
+    // Tab Switcher
+    function switchTab(tabId) {
+      document.querySelectorAll('.app-tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => {
+        el.classList.remove('text-amber-400');
+        el.classList.add('text-slate-400');
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+      const activeNav = document.getElementById(`nav-btn-${tabId}`);
+      activeNav.classList.remove('text-slate-400');
+      activeNav.classList.add('text-amber-400');
+
+      renderReservations();
+    }
+
+    function dismissPwaBanner() {
+      document.getElementById('pwa-install-banner').style.display = 'none';
+    }
+
+    function onProfileChange() {
+      renderReservations();
+    }
+
+    function saveReservations() {
+      localStorage.setItem('svs_reservations_data', JSON.stringify(reservations));
+      renderReservations();
+      updateAllTimeSlots();
+    }
+
+    /* Update Time Slots Dropdown */
+    function updateAllTimeSlots() {
+      refreshTimeSlot('slot-mon', 'Mon (월)', '부집행관(월_건설)');
+      refreshTimeSlot('slot-tue', 'Tue (화)', '부집행관(화_연구)');
+      refreshTimeSlot('slot-thu', 'Thu (목)', '교육부(목_훈련)');
+    }
+
+    function refreshTimeSlot(selectId, dayPrefix, buffName) {
+      const select = document.getElementById(selectId);
+      if (!select) return;
+
+      const currentValue = select.value;
+      select.innerHTML = '';
+
+      const bookedTimes = reservations
+        .filter(r => r.buff === buffName)
+        .map(r => r.time);
+
+      let firstValidSelect = null;
+
+      for (let h = 0; h < 24; h++) {
+        for (let m = 0; m < 60; m += 30) {
+          const timeStr = `${dayPrefix} UTC ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          const isBooked = bookedTimes.includes(timeStr);
+
+          const option = document.createElement('option');
+          option.value = timeStr;
+          
+          if (isBooked) {
+            option.textContent = `${timeStr} (Booked / 선점됨)`;
+            option.disabled = true;
+            option.className = "text-slate-600 bg-slate-900";
+          } else {
+            option.textContent = timeStr;
+            if (!firstValidSelect) firstValidSelect = timeStr;
+          }
+
+          select.appendChild(option);
+        }
+      }
+
+      if (currentValue && !bookedTimes.includes(currentValue)) {
+        select.value = currentValue;
+      } else if (firstValidSelect) {
+        select.value = firstValidSelect;
+      }
+    }
+
+    /* Render Reservations Cards */
+    function renderReservations() {
+      const mobileList = document.getElementById('reservation-mobile-list');
+      const myList = document.getElementById('my-reservation-list');
+      const emptyEl = document.getElementById('empty-state');
+      const myEmptyEl = document.getElementById('my-empty-state');
+      
+      mobileList.innerHTML = '';
+      myList.innerHTML = '';
+
+      const currentNickname = document.getElementById('user-nickname').value.trim().toLowerCase();
+      const currentGameId = document.getElementById('user-gameid').value.trim();
+
+      const filtered = reservations.filter(r => {
+        if (currentFilter === 'all') return true;
+        return r.buff === currentFilter;
+      });
+
+      if (filtered.length === 0) {
+        emptyEl.classList.remove('hidden');
+      } else {
+        emptyEl.classList.add('hidden');
+      }
+
+      filtered.sort((a, b) => a.time.localeCompare(b.time));
+
+      let myCount = 0;
+
+      filtered.forEach(item => {
+        const isOwner = currentNickname !== '' && (
+          item.nickname.toLowerCase() === currentNickname ||
+          (currentGameId !== '' && item.gameId && item.gameId === currentGameId)
+        );
+
+        if (isOwner) myCount++;
+
+        let badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+        if (item.buff.includes('월_건설')) badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+        if (item.buff.includes('화_연구')) badgeColor = 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+        if (item.buff.includes('목_훈련')) badgeColor = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+
+        const resources = [];
+        if (item.smeltFire) resources.push(`제련: ${item.smeltFire}`);
+        if (item.fireDust) resources.push(`가루: ${item.fireDust}`);
+        if (item.researchSpeed) resources.push(`연구: ${item.researchSpeed}m`);
+        if (item.trainSpeed) resources.push(`훈련: ${item.trainSpeed}m`);
+        if (item.commonSpeed) resources.push(`공용: ${item.commonSpeed}m`);
+
+        const resourceStr = resources.length > 0 ? resources.join(' | ') : '보유 자원 미입력 (No resource entered)';
+
+        const card = document.createElement('div');
+        card.className = 'bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2 text-xs shadow-md';
+
+        let adminBtnHtml = isAdmin ? `
+          <button data-id="${item.id}" data-buff="${item.buff}" data-time="${item.time}" data-nick="${item.nickname}" class="edit-time-btn text-[11px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded-lg transition-colors">
+            <i class="fa-solid fa-pen-to-square"></i> 시간변경
+          </button>
+        ` : '';
+
+        let cancelBtnHtml = '';
+        if (isAdmin || isOwner) {
+          cancelBtnHtml = `
+            <button data-id="${item.id}" class="cancel-btn text-[11px] bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-lg transition-colors">
+              ${isAdmin ? '삭제 (Delete)' : '내 예약 취소 (Cancel)'}
+            </button>
+          `;
+        } else {
+          cancelBtnHtml = `
+            <span class="text-[10px] text-slate-500 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded cursor-not-allowed">
+              <i class="fa-solid fa-lock mr-1"></i>타인 예약 (Locked)
+            </span>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="inline-block px-2 py-0.5 text-[10px] border rounded-full font-medium ${badgeColor} mb-1">
+                ${item.buff}
+              </span>
+              <div class="font-bold text-slate-100 text-sm">${item.alliance} - ${item.nickname}</div>
+            </div>
+            <span class="font-mono text-amber-300 font-bold bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
+              ${item.time}
+            </span>
+          </div>
+
+          <div class="text-[11px] text-slate-400 font-mono bg-slate-900/60 p-2 rounded-lg border border-slate-800/80">
+            <i class="fa-solid fa-cubes text-slate-500 mr-1"></i> ${resourceStr}
+          </div>
+
+          <div class="flex justify-between items-center pt-1">
+            <span class="text-[10px] text-emerald-400">
+              <i class="fa-solid fa-check-circle mr-1"></i>Reserved (예약완료)
+            </span>
+            <div class="flex items-center gap-1.5">
+              ${adminBtnHtml}
+              ${cancelBtnHtml}
+            </div>
+          </div>
+        `;
+
+        mobileList.appendChild(card);
+
+        if (isOwner) {
+          const myCard = card.cloneNode(true);
+          myList.appendChild(myCard);
+        }
+      });
+
+      const badge = document.getElementById('my-count-badge');
+      if (myCount > 0) {
+        badge.textContent = myCount;
+        badge.classList.remove('hidden');
+        myEmptyEl.classList.add('hidden');
+      } else {
+        badge.classList.add('hidden');
+        myEmptyEl.classList.remove('hidden');
+      }
+
+      // Event Bindings
+      document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          const docId = e.currentTarget.getAttribute('data-id');
+          showConfirmModal('해당 예약을 정말 취소하시겠습니까?<br><span class="text-slate-400 text-[11px]">Are you sure you want to cancel this booking?</span>', () => {
+            reservations = reservations.filter(r => r.id !== docId);
+            saveReservations();
+            showToast('예약이 성공적으로 취소되었습니다. (Booking cancelled)', 'success');
+          });
+        };
+      });
+
+      document.querySelectorAll('.edit-time-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          const docId = e.currentTarget.getAttribute('data-id');
+          const buff = e.currentTarget.getAttribute('data-buff');
+          const time = e.currentTarget.getAttribute('data-time');
+          const nick = e.currentTarget.getAttribute('data-nick');
+          openAdminModal(docId, buff, time, nick);
+        };
+      });
+    }
+
+    /* Admin Management Logic */
+    function promptAdminLogin() {
+      if (isAdmin) {
+        isAdmin = false;
+        document.getElementById('admin-indicator').classList.add('hidden');
+        renderReservations();
+        showToast('관리자 모드가 해제되었습니다. (Admin logged out)', 'info');
+      } else {
+        document.getElementById('admin-pass-input').value = '';
+        document.getElementById('admin-pass-modal').classList.remove('hidden');
+        document.getElementById('admin-pass-input').focus();
+      }
+    }
+
+    function closeAdminPassModal() {
+      document.getElementById('admin-pass-modal').classList.add('hidden');
+    }
+
+    function submitAdminLogin() {
+      const pass = document.getElementById('admin-pass-input').value.trim();
+      if (pass === '1234') {
+        isAdmin = true;
+        document.getElementById('admin-indicator').classList.remove('hidden');
+        closeAdminPassModal();
+        renderReservations();
+        showToast('관리자로 로그인되었습니다! (Admin Logged In)', 'success');
+      } else {
+        showToast('비밀번호가 올바르지 않습니다. (Incorrect Password)', 'error');
+      }
+    }
+
+    function openAdminModal(docId, buff, currentTime, nickname) {
+      activeTargetDocId = docId;
+      activeTargetBuff = buff;
+
+      document.getElementById('modal-info-text').innerHTML = `
+        영주: <strong class="text-amber-300">${nickname}</strong><br>
+        관직: <strong>${buff}</strong> | 현재: <span class="font-mono text-amber-300">${currentTime}</span>
+      `;
+
+      const timeSelect = document.getElementById('modal-time-select');
+      timeSelect.innerHTML = '';
+
+      let dayPrefix = 'Mon (월)';
+      if (buff.includes('화_연구')) dayPrefix = 'Tue (화)';
+      if (buff.includes('목_훈련')) dayPrefix = 'Thu (목)';
+
+      const bookedTimes = reservations
+        .filter(r => r.buff === buff && r.id !== docId)
+        .map(r => r.time);
+
+      for (let h = 0; h < 24; h++) {
+        for (let m = 0; m < 60; m += 30) {
+          const timeStr = `${dayPrefix} UTC ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          const isBooked = bookedTimes.includes(timeStr);
+
+          const option = document.createElement('option');
+          option.value = timeStr;
+
+          if (isBooked) {
+            option.textContent = `${timeStr} (Booked / 선점됨)`;
+            option.disabled = true;
+          } else {
+            option.textContent = timeStr;
+          }
+
+          if (timeStr === currentTime) option.selected = true;
+          timeSelect.appendChild(option);
+        }
+      }
+
+      document.getElementById('admin-time-modal').classList.remove('hidden');
+    }
+
+    function closeAdminModal() {
+      document.getElementById('admin-time-modal').classList.add('hidden');
+      activeTargetDocId = null;
+      activeTargetBuff = null;
+    }
+
+    function saveAdminTimeChange() {
+      if (!activeTargetDocId) return;
+
+      const newTimeSlot = document.getElementById('modal-time-select').value;
+      const isConflict = reservations.some(r => r.id !== activeTargetDocId && r.time === newTimeSlot && r.buff === activeTargetBuff);
+
+      if (isConflict) {
+        showToast('선택하신 시간대는 이미 예약되어 있습니다. (Slot already booked)', 'error');
+        return;
+      }
+
+      const target = reservations.find(r => r.id === activeTargetDocId);
+      if (target) {
+        target.time = newTimeSlot;
+        saveReservations();
+        showToast('예약 시간이 변경되었습니다! (Slot updated)', 'success');
+        closeAdminModal();
+      }
+    }
+
+    /* Booking Process */
+    function bookOffice(buffName, selectId) {
+      const alliance = document.getElementById('user-alliance').value.trim();
+      const nickname = document.getElementById('user-nickname').value.trim();
+      const gameId = document.getElementById('user-gameid').value.trim();
+
+      const smeltFire = document.getElementById('user-smelt-fire').value.trim();
+      const fireDust = document.getElementById('user-fire-dust').value.trim();
+      const researchSpeed = document.getElementById('user-research-speed').value.trim();
+      const trainSpeed = document.getElementById('user-train-speed').value.trim();
+      const commonSpeed = document.getElementById('user-common-speed').value.trim();
+
+      const timeSlotSelect = document.getElementById(selectId);
+      const timeSlot = timeSlotSelect.value;
+
+      if (!alliance || !nickname) {
+        showToast('STEP 1에서 [동맹명]과 [영주 닉네임]을 입력해주세요!<br><span class="text-[10px]">Please enter [Alliance] and [Lord Nickname] in STEP 1!</span>', 'error');
+        document.getElementById('user-nickname').focus();
+        return;
+      }
+
+      if (!timeSlot) {
+        showToast('선택 가능한 시간대가 없습니다. (No slot available)', 'error');
+        return;
+      }
+
+      document.getElementById('profile-saved-badge').classList.remove('hidden');
+
+      const isTimeConflict = reservations.some(r => r.time === timeSlot && r.buff === buffName);
+      if (isTimeConflict) {
+        showToast(`선택하신 시간대(${timeSlot})는 이미 예약되었습니다.`, 'error');
+        updateAllTimeSlots();
+        return;
+      }
+
+      const isUserAlreadyBookedThisBuff = reservations.some(r => {
+        const sameBuff = r.buff === buffName;
+        const sameName = r.nickname.toLowerCase() === nickname.toLowerCase();
+        const sameGameId = gameId && r.gameId && r.gameId === gameId;
+        return sameBuff && (sameName || sameGameId);
+      });
+
+      if (isUserAlreadyBookedThisBuff) {
+        showToast(`'${nickname}'님은 이미 [${buffName}] 관직 예약 내역이 있습니다.<br><span class="text-[10px]">Only 1 slot per officer allowed.</span>`, 'error');
+        return;
+      }
+
+      const newBooking = {
+        id: 'res-' + Date.now(),
+        alliance,
+        nickname,
+        gameId,
+        smeltFire,
+        fireDust,
+        researchSpeed,
+        trainSpeed,
+        commonSpeed,
+        buff: buffName,
+        time: timeSlot,
+        duration: '30'
+      };
+
+      reservations.push(newBooking);
+      saveReservations();
+      showToast(`[${buffName}] ${timeSlot} 예약이 완료되었습니다! (Booking Confirmed)`, 'success');
+    }
+
+    // Filter Chips Event Listener
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.filter-btn').forEach(b => {
+          b.className = 'filter-btn shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-full font-medium transition-all';
+        });
+        e.currentTarget.className = 'filter-btn shrink-0 bg-amber-500 text-slate-950 px-3 py-1 rounded-full font-bold transition-all';
+        currentFilter = e.currentTarget.getAttribute('data-filter');
+        renderReservations();
+      });
+    });
+
+    // Real-Time UTC Clock
+    function updateUTCTime() {
+      const now = new Date();
+      const hours = String(now.getUTCHours()).padStart(2, '0');
+      const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+      document.getElementById('current-utc-time').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+
+    window.onload = function() {
+      updateAllTimeSlots();
+      renderReservations();
+      setInterval(updateUTCTime, 1000);
+      updateUTCTime();
+    };
+  </script>
+</body>
+</html>
