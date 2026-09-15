@@ -36,11 +36,16 @@
         </div>
         <div>
           <h1 class="text-base font-bold text-amber-400 leading-tight">SVS Officer Booking</h1>
-          <p class="text-[10px] text-slate-400">SVS 관직 실시간 원스톱 예약 시스템</p>
+          <p class="text-[10px] text-slate-400">SVS 관직 실시간 원스톱 예약 시스템 <span class="text-amber-300 font-semibold">(Made by 유리yuri)</span></p>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
+        <!-- 관리자 전용 다운로드 버튼 (초기엔 숨김) -->
+        <button id="admin-download-btn" onclick="downloadScheduleCSV()" class="hidden text-[11px] bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500/50 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-colors shadow">
+          <i class="fa-solid fa-file-excel"></i> <span>Download CSV</span>
+        </button>
+
         <button onclick="toggleAdminLogin()" class="text-[11px] bg-slate-700 hover:bg-slate-600 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-colors">
           <i class="fa-solid fa-user-shield"></i> <span id="admin-btn-text">Admin</span>
         </button>
@@ -67,9 +72,13 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div>
-          <label class="block text-[11px] text-slate-300 mb-1">Alliance / 동맹명 <span class="text-amber-400">*</span></label>
-          <input type="text" id="user-alliance" oninput="saveUserProfile(); renderReservations();" placeholder="e.g. [ABC] Strong"
-                 class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-amber-400">
+          <label class="block text-[11px] text-slate-300 mb-1">Alliance / 동맹 선택 <span class="text-amber-400">*</span></label>
+          <select id="user-alliance" onchange="saveUserProfile(); renderReservations();"
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-amber-400">
+            <option value="">동맹 선택 (Select Alliance)</option>
+            <option value="RYL">RYL</option>
+            <option value="SEA">SEA</option>
+          </select>
         </div>
         <div>
           <label class="block text-[11px] text-slate-300 mb-1">Nickname / 영주 닉네임 <span class="text-amber-400">*</span></label>
@@ -234,7 +243,6 @@
       appId: "1:1234567890:web:svsofficerdemo"
     };
 
-    // Firebase 초기화 (실시간 동기화 지원)
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -245,7 +253,6 @@
     let currentFilter = 'all';
     let isAdmin = false;
 
-    // 페이지 로드 시 로컬 사용자 프로필 불러오기
     window.onload = function() {
       loadUserProfile();
       initTimeSlots();
@@ -254,7 +261,6 @@
       updateUTCTime();
     };
 
-    // 실시간 Firestore 데이터 수신 (모든 사용자 동기화)
     function listenRealtimeData() {
       db.collection("svs_office_reservations")
         .onSnapshot((snapshot) => {
@@ -266,17 +272,15 @@
           renderReservations();
         }, (error) => {
           console.warn("Realtime DB Offline Mode fallback to localStorage:", error);
-          // 폴백: 로컬스토리지 모드
           reservations = JSON.parse(localStorage.getItem('svs_shared_res')) || [];
           updateTimeSlots();
           renderReservations();
         });
     }
 
-    // 유저 프로필 저장 & 불러오기
     function saveUserProfile() {
       const profile = {
-        alliance: document.getElementById('user-alliance').value.trim(),
+        alliance: document.getElementById('user-alliance').value,
         nickname: document.getElementById('user-nickname').value.trim(),
         gameId: document.getElementById('user-gameid').value.trim()
       };
@@ -292,7 +296,6 @@
       }
     }
 
-    // 드롭다운 옵션 생성
     function initTimeSlots() {
       createOptions('slot-mon', 'Mon');
       createOptions('slot-tue', 'Tue');
@@ -313,7 +316,6 @@
       }
     }
 
-    // 이미 선점된 시간 비활성화 (disabled)
     function updateTimeSlots() {
       checkSlot('slot-mon', 'Vice-President(Mon_Const)');
       checkSlot('slot-tue', 'Vice-President(Tue_Research)');
@@ -340,28 +342,31 @@
       });
     }
 
-    // 예약 신청
     function bookOffice(buffName, selectId) {
-      const alliance = document.getElementById('user-alliance').value.trim();
+      const alliance = document.getElementById('user-alliance').value;
       const nickname = document.getElementById('user-nickname').value.trim();
       const gameId = document.getElementById('user-gameid').value.trim();
 
-      if (!alliance || !nickname) {
-        alert("Please enter Alliance and Nickname in STEP 1 first!\nSTEP 1의 동맹명과 닉네임을 먼저 입력해주세요!");
+      if (!alliance) {
+        alert("Please select your Alliance in STEP 1!\nSTEP 1에서 동맹(RYL 또는 SEA)을 선택해주세요!");
+        document.getElementById('user-alliance').focus();
+        return;
+      }
+
+      if (!nickname) {
+        alert("Please enter Nickname in STEP 1!\nSTEP 1의 영주 닉네임을 입력해주세요!");
         document.getElementById('user-nickname').focus();
         return;
       }
 
       const timeSlot = document.getElementById(selectId).value;
 
-      // 1. 중복 선점 검사
       const isConflict = reservations.some(r => r.buff === buffName && r.time === timeSlot);
       if (isConflict) {
         alert("This time slot is already booked!\n이미 다른 분이 선점한 시간대입니다.");
         return;
       }
 
-      // 2. 관직당 1인 1회 제한
       const isAlreadyBooked = reservations.some(r => r.buff === buffName && r.nickname.toLowerCase() === nickname.toLowerCase());
       if (isAlreadyBooked) {
         alert("You can only book once (30 mins) per office!\n관직당 1회(30분)만 예약할 수 있습니다.");
@@ -382,13 +387,11 @@
         createdAt: Date.now()
       };
 
-      // Firestore 저장 (전원 실시간 동기화)
       db.collection("svs_office_reservations").add(newBooking)
         .then(() => {
           alert(`[${buffName}] ${timeSlot} Reserved Successfully!\n예약이 완료되었습니다!`);
         })
         .catch(() => {
-          // 로컬 저장 폴백
           newBooking.id = 'res-' + Date.now();
           reservations.push(newBooking);
           localStorage.setItem('svs_shared_res', JSON.stringify(reservations));
@@ -398,7 +401,6 @@
         });
     }
 
-    // 예약 삭제 (본인 또는 관리자만)
     function cancelBooking(docId) {
       if (confirm("Cancel this booking?\n해당 예약을 취소하시겠습니까?")) {
         db.collection("svs_office_reservations").doc(docId).delete()
@@ -411,7 +413,6 @@
       }
     }
 
-    // 테이블 렌더링
     function renderReservations() {
       const listEl = document.getElementById('reservation-list');
       const emptyEl = document.getElementById('empty-state');
@@ -422,7 +423,6 @@
 
       let targetList = reservations;
 
-      // 탭 필터링
       if (currentTab === 'my') {
         targetList = reservations.filter(r => 
           (myNick !== '' && r.nickname.toLowerCase() === myNick) ||
@@ -430,7 +430,6 @@
         );
       }
 
-      // 날짜 필터링
       if (currentFilter !== 'all') {
         targetList = targetList.filter(r => r.time.includes(currentFilter));
       }
@@ -477,11 +476,11 @@
           <td class="p-2.5 font-mono text-amber-300 font-semibold">${item.time}</td>
           <td class="p-2.5"><span class="px-2 py-0.5 border rounded-full ${badgeColor}">${item.buff}</span></td>
           <td class="p-2.5">
-            <div class="font-bold text-slate-200">${item.alliance}</div>
-            <div class="text-[10px] text-slate-400">${item.nickname}</div>
+            <div class="font-bold text-slate-200">[${item.alliance}]</div>
+            <div class="text-[10px] text-slate-400">${item.nickname} ${item.gameId ? `(#${item.gameId})` : ''}</div>
           </td>
           <td class="p-2.5 text-[10px] font-mono text-slate-300">
-            F:${item.smelt || 0} | D:${item.dust || 0} | R:${item.research || 0}m
+            F:${item.smelt || 0} | D:${item.dust || 0} | R:${item.research || 0}m | T:${item.train || 0}m | G:${item.common || 0}m
           </td>
           <td class="p-2.5 text-right">${cancelBtnHtml}</td>
         `;
@@ -489,7 +488,6 @@
       });
     }
 
-    // 탭 전환 Logic
     function switchTab(tab) {
       currentTab = tab;
       document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
@@ -508,25 +506,80 @@
       }
     }
 
-    // 관리자 로그인
     function toggleAdminLogin() {
+      const downloadBtn = document.getElementById('admin-download-btn');
       if (isAdmin) {
         isAdmin = false;
         document.getElementById('admin-btn-text').textContent = "Admin";
+        downloadBtn.classList.add('hidden');
         renderReservations();
         alert("Admin mode disabled / 관리자 모드가 해제되었습니다.");
       } else {
-        const pwd = prompt("Enter Admin Password / 비밀번호 입력 (Default: 1234):");
-        if (pwd === "1234") {
+        const pwd = prompt("Enter Admin Password / 비밀번호 입력:");
+        if (pwd === "2163") {
           isAdmin = true;
           document.getElementById('admin-btn-text').textContent = "Admin (ON)";
+          downloadBtn.classList.remove('hidden');
           renderReservations();
-          alert("Logged in as Admin! You can delete any booking.\n관리자로 로그인되었습니다.");
+          alert("Logged in as Admin! You can delete or download the full schedule.\n관리자로 로그인되었습니다. 명단 다운로드가 가능합니다.");
+        } else if (pwd !== null) {
+          alert("Incorrect password! / 비밀번호가 틀렸습니다.");
         }
       }
     }
 
-    // UTC 시계
+    // 관리자용 CSV 다운로드 함수 (엑셀 호환 UTF-8 BOM 지원)
+    function downloadScheduleCSV() {
+      if (reservations.length === 0) {
+        alert("다운로드할 예약 내역이 없습니다. / No reservations to download.");
+        return;
+      }
+
+      // 시간 순서 정렬
+      const sorted = [...reservations].sort((a, b) => a.time.localeCompare(b.time));
+
+      // CSV 헤더 정의
+      const headers = [
+        "Time (UTC)",
+        "Office (관직)",
+        "Alliance (동맹)",
+        "Nickname (영주명)",
+        "Game ID",
+        "Refined Fire (제련불수)",
+        "Fire Dust (불수가루)",
+        "Research Speed (연구가속/분)",
+        "Train Speed (훈련가속/분)",
+        "Common Speed (공용가속/분)"
+      ];
+
+      const rows = sorted.map(r => [
+        `"${r.time || ''}"`,
+        `"${r.buff || ''}"`,
+        `"${r.alliance || ''}"`,
+        `"${r.nickname || ''}"`,
+        `"${r.gameId || ''}"`,
+        `"${r.smelt || 0}"`,
+        `"${r.dust || 0}"`,
+        `"${r.research || 0}"`,
+        `"${r.train || 0}"`,
+        `"${r.common || 0}"`
+      ]);
+
+      // Excel 한글 깨짐 방지 UTF-8 BOM (\uFEFF)
+      const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\r\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      
+      const today = new Date().toISOString().slice(0, 10);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `SVS_Office_Schedule_${today}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
     function updateUTCTime() {
       const now = new Date();
       const h = String(now.getUTCHours()).padStart(2, '0');
@@ -535,7 +588,6 @@
       document.getElementById('utc-clock').textContent = `${h}:${m}:${s}`;
     }
 
-    // 필터 버튼 이벤트
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn bg-slate-700 text-slate-300 px-2 py-1 rounded');
