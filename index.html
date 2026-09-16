@@ -105,15 +105,15 @@
             <input type="number" id="res-dust" min="0" placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs">
           </div>
           <div>
-            <label class="block text-[10px] text-slate-400 mb-0.5">Research (연구/m)</label>
+            <label class="block text-[10px] text-slate-400 mb-0.5">Research (연구/day)</label>
             <input type="number" id="res-research" min="0" placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs">
           </div>
           <div>
-            <label class="block text-[10px] text-slate-400 mb-0.5">Training (훈련/m)</label>
+            <label class="block text-[10px] text-slate-400 mb-0.5">Training (훈련/day)</label>
             <input type="number" id="res-train" min="0" placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs">
           </div>
           <div>
-            <label class="block text-[10px] text-slate-400 mb-0.5">General (공용/m)</label>
+            <label class="block text-[10px] text-slate-400 mb-0.5">General (공용/day)</label>
             <input type="number" id="res-common" min="0" placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs">
           </div>
         </div>
@@ -547,9 +547,9 @@
         "Game ID",
         "Refined Fire (제련불수)",
         "Fire Dust (불수가루)",
-        "Research Speed (연구가속/분)",
-        "Train Speed (훈련가속/분)",
-        "Common Speed (공용가속/분)"
+        "Research Speed (연구가속/일수)",
+        "Train Speed (훈련가속/일수)",
+        "Common Speed (공용가속/일수)"
       ];
 
       const rows = sorted.map(r => [
