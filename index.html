@@ -9,10 +9,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   
-  <!-- Firebase SDK (v9+ Compatibility) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
     body {
@@ -147,8 +143,8 @@
             <label class="block text-[11px] text-slate-400 mb-1">Select Slot / 시간 선택</label>
             <select id="slot-mon" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 mb-3 focus:outline-none focus:border-emerald-400"></select>
           </div>
-          <button onclick="bookOffice('Vice-President(Mon_Const)', 'slot-mon')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg text-xs transition-colors shadow">
-            Book Mon Slot / 월요일 예약
+          <button onclick="bookOffice('Vice-President(Mon_Const)', 'slot-mon', this)" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg text-xs transition-colors shadow flex justify-center items-center">
+            <span>Book Mon Slot / 월요일 예약</span>
           </button>
         </div>
 
@@ -163,8 +159,8 @@
             <label class="block text-[11px] text-slate-400 mb-1">Select Slot / 시간 선택</label>
             <select id="slot-tue" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 mb-3 focus:outline-none focus:border-blue-400"></select>
           </div>
-          <button onclick="bookOffice('Vice-President(Tue_Research)', 'slot-tue')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition-colors shadow">
-            Book Tue Slot / 화요일 예약
+          <button onclick="bookOffice('Vice-President(Tue_Research)', 'slot-tue', this)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition-colors shadow flex justify-center items-center">
+            <span>Book Tue Slot / 화요일 예약</span>
           </button>
         </div>
 
@@ -179,8 +175,8 @@
             <label class="block text-[11px] text-slate-400 mb-1">Select Slot / 시간 선택</label>
             <select id="slot-thu" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 mb-3 focus:outline-none focus:border-purple-400"></select>
           </div>
-          <button onclick="bookOffice('Minister(Thu_Train)', 'slot-thu')" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-lg text-xs transition-colors shadow">
-            Book Thu Slot / 목요일 예약
+          <button onclick="bookOffice('Minister(Thu_Train)', 'slot-thu', this)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-lg text-xs transition-colors shadow flex justify-center items-center">
+            <span>Book Thu Slot / 목요일 예약</span>
           </button>
         </div>
 
@@ -217,8 +213,8 @@
           </thead>
           <tbody id="reservation-list" class="divide-y divide-slate-700/50 text-xs"></tbody>
         </table>
-        <div id="empty-state" class="hidden text-center py-8 text-slate-500 text-xs">
-          No bookings found / 등록된 예약 내역이 없습니다.
+        <div id="empty-state" class="text-center py-8 text-slate-500 text-xs">
+          Loading Data... (데이터를 불러오는 중입니다) ⏳
         </div>
       </div>
     </div>
@@ -246,23 +242,10 @@
   <!-- 스크립트 Logic -->
   <script>
     // ==============================================================================
-    // 🔥 파이어베이스 실제 연결 설정이 적용된 부분입니다 🔥
+    // 🔥 요청하신 구글 스프레드시트 웹앱 URL을 입력했습니다. 🔥
     // ==============================================================================
-    const firebaseConfig = {
-      apiKey: "AIzaSyAAFx6YB7TTt1n31a0RxHYHSMTOzNXrAXA",
-      authDomain: "project-6658220301038128746.firebaseapp.com",
-      projectId: "project-6658220301038128746",
-      storageBucket: "project-6658220301038128746.firebasestorage.app",
-      messagingSenderId: "92899475881",
-      appId: "1:92899475881:web:a4fc42d2087237c67144b8",
-      measurementId: "G-Q8Y00C67JE"
-    };
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxNq0oSgNigl10p4kQxBZijnRRCMQyO9npddrWdNrUrlV6szE_IfgFglJ_OWOv9ZiyB/exec";
     // ==============================================================================
-
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-    const db = firebase.firestore();
 
     let reservations = [];
     let currentTab = 'book';
@@ -272,26 +255,26 @@
     window.onload = function() {
       loadUserProfile();
       initTimeSlots();
-      listenRealtimeData();
+      loadDataFromSheet();
+      
+      // 시계 업데이트
       setInterval(updateUTCTime, 1000);
       updateUTCTime();
+
+      // 다른 사람의 예약도 실시간처럼 반영되게 20초마다 백그라운드 데이터 갱신
+      setInterval(loadDataFromSheet, 20000); 
     };
 
-    function listenRealtimeData() {
-      db.collection("svs_office_reservations")
-        .onSnapshot((snapshot) => {
-          reservations = [];
-          snapshot.forEach((doc) => {
-            reservations.push({ id: doc.id, ...doc.data() });
-          });
+    // 구글 시트에서 데이터 읽어오기
+    function loadDataFromSheet() {
+      fetch(SCRIPT_URL)
+        .then(res => res.json())
+        .then(data => {
+          reservations = data;
           updateTimeSlots();
           renderReservations();
-        }, (error) => {
-          console.warn("Realtime DB Offline Mode fallback to localStorage:", error);
-          reservations = JSON.parse(localStorage.getItem('svs_shared_res')) || [];
-          updateTimeSlots();
-          renderReservations();
-        });
+        })
+        .catch(err => console.error("Error loading data:", err));
     }
 
     function saveUserProfile() {
@@ -360,7 +343,7 @@
       });
     }
 
-    function bookOffice(buffName, selectId) {
+    function bookOffice(buffName, selectId, btnElement) {
       const alliance = document.getElementById('user-alliance').value;
       const nickname = document.getElementById('user-nickname').value.trim();
       const gameId = document.getElementById('user-gameid').value.trim();
@@ -382,6 +365,7 @@
       const isConflict = reservations.some(r => r.buff === buffName && r.time === timeSlot);
       if (isConflict) {
         alert("This time slot is already booked!\n이미 다른 분이 선점한 시간대입니다.");
+        loadDataFromSheet(); // 충돌 발생 시 최신 데이터로 리프레시
         return;
       }
 
@@ -391,7 +375,11 @@
         return;
       }
 
+      // 예약 ID 생성
+      const uniqueId = 'res-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+
       const newBooking = {
+        id: uniqueId,
         alliance,
         nickname,
         gameId,
@@ -405,29 +393,52 @@
         createdAt: Date.now()
       };
 
-      db.collection("svs_office_reservations").add(newBooking)
-        .then(() => {
-          alert(`[${buffName}] ${timeSlot} Reserved Successfully!\n예약이 완료되었습니다!`);
-        })
-        .catch(() => {
-          newBooking.id = 'res-' + Date.now();
-          reservations.push(newBooking);
-          localStorage.setItem('svs_shared_res', JSON.stringify(reservations));
-          updateTimeSlots();
-          renderReservations();
-          alert(`[${buffName}] ${timeSlot} Reserved! (Local)`);
-        });
+      // 버튼 상태 변경
+      const originalText = btnElement.innerHTML;
+      btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Booking...';
+      btnElement.disabled = true;
+
+      // 구글 시트로 POST 전송
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'book', data: newBooking })
+      })
+      .then(res => res.json())
+      .then(result => {
+        alert(`[${buffName}] ${timeSlot} Reserved Successfully!\n예약이 완료되었습니다!`);
+        loadDataFromSheet(); // 최신 목록 새로고침
+        switchTab('my'); // 내 예약 탭으로 자동 이동
+      })
+      .catch(err => {
+        alert('예약 중 오류가 발생했습니다. 다시 시도해주세요.');
+        console.error(err);
+      })
+      .finally(() => {
+        btnElement.innerHTML = originalText;
+        btnElement.disabled = false;
+      });
     }
 
-    function cancelBooking(docId) {
+    function cancelBooking(docId, btnElement) {
       if (confirm("Cancel this booking?\n해당 예약을 취소하시겠습니까?")) {
-        db.collection("svs_office_reservations").doc(docId).delete()
-          .catch(() => {
-            reservations = reservations.filter(r => r.id !== docId);
-            localStorage.setItem('svs_shared_res', JSON.stringify(reservations));
-            updateTimeSlots();
-            renderReservations();
-          });
+        
+        btnElement.innerHTML = 'Canceling...';
+        btnElement.disabled = true;
+
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'delete', id: docId })
+        })
+        .then(res => res.json())
+        .then(result => {
+          alert('예약이 취소되었습니다.');
+          loadDataFromSheet();
+        })
+        .catch(err => {
+          alert('취소 중 오류가 발생했습니다.');
+          btnElement.innerHTML = 'Cancel/취소';
+          btnElement.disabled = false;
+        });
       }
     }
 
@@ -444,7 +455,7 @@
       if (currentTab === 'my') {
         targetList = reservations.filter(r => 
           (myNick !== '' && r.nickname.toLowerCase() === myNick) ||
-          (myGameId !== '' && r.gameId && r.gameId === myGameId)
+          (myGameId !== '' && r.gameId && String(r.gameId) === myGameId)
         );
       }
 
@@ -453,6 +464,7 @@
       }
 
       if (targetList.length === 0) {
+        emptyEl.innerHTML = 'No bookings found / 등록된 예약 내역이 없습니다.';
         emptyEl.classList.remove('hidden');
         return;
       } else {
@@ -467,7 +479,7 @@
 
         const isOwner = myNick !== '' && (
           item.nickname.toLowerCase() === myNick ||
-          (myGameId !== '' && item.gameId && item.gameId === myGameId)
+          (myGameId !== '' && item.gameId && String(item.gameId) === myGameId)
         );
 
         let badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
@@ -478,7 +490,7 @@
         let cancelBtnHtml = '';
         if (isAdmin || isOwner) {
           cancelBtnHtml = `
-            <button onclick="cancelBooking('${item.id}')" class="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 px-2 py-0.5 rounded text-[10px]">
+            <button onclick="cancelBooking('${item.id}', this)" class="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 px-2 py-0.5 rounded text-[10px]">
               ${isAdmin ? 'Delete' : 'Cancel/취소'}
             </button>
           `;
