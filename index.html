@@ -245,15 +245,19 @@
 
   <!-- 스크립트 Logic -->
   <script>
-    // 1. Firebase 실시간 인메모리 DB 설정 (Public Shared DB)
+    // ==============================================================================
+    // 🔥 파이어베이스 실제 연결 설정이 적용된 부분입니다 🔥
+    // ==============================================================================
     const firebaseConfig = {
-      apiKey: "AIzaSyD-DemoKeyForPublicSVSUseOnly",
-      authDomain: "svs-officer-demo.firebaseapp.com",
-      projectId: "svs-officer-demo",
-      storageBucket: "svs-officer-demo.appspot.com",
-      messagingSenderId: "1234567890",
-      appId: "1:1234567890:web:svsofficerdemo"
+      apiKey: "AIzaSyAAFx6YB7TTt1n31a0RxHYHSMTOzNXrAXA",
+      authDomain: "project-6658220301038128746.firebaseapp.com",
+      projectId: "project-6658220301038128746",
+      storageBucket: "project-6658220301038128746.firebasestorage.app",
+      messagingSenderId: "92899475881",
+      appId: "1:92899475881:web:a4fc42d2087237c67144b8",
+      measurementId: "G-Q8Y00C67JE"
     };
+    // ==============================================================================
 
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
@@ -314,19 +318,16 @@
       createOptions('slot-thu', 'Thu');
     }
 
-    // 💡 변경된 함수: KST 계산 및 텍스트 추가
     function createOptions(selectId, dayPrefix) {
       const select = document.getElementById(selectId);
       select.innerHTML = '';
       for (let h = 0; h < 24; h++) {
         for (let m = 0; m < 60; m += 30) {
-          // 한국 시간(KST)은 UTC+9 이므로 더해서 24로 나눈 나머지를 구합니다
           const kstH = (h + 9) % 24;
-          
           const timeStr = `${dayPrefix} UTC ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} (KST ${String(kstH).padStart(2, '0')}:${String(m).padStart(2, '0')})`;
           
           const opt = document.createElement('option');
-          opt.value = timeStr; // 이 값이 DB에 저장되고 현황표에 그대로 출력됨
+          opt.value = timeStr;
           opt.textContent = timeStr;
           select.appendChild(opt);
         }
@@ -593,17 +594,14 @@
       document.body.removeChild(link);
     }
 
-    // 시계 업데이트 (UTC 및 KST 동시 반영)
     function updateUTCTime() {
       const now = new Date();
       
-      // UTC 
       const uh = String(now.getUTCHours()).padStart(2, '0');
       const um = String(now.getUTCMinutes()).padStart(2, '0');
       const us = String(now.getUTCSeconds()).padStart(2, '0');
       document.getElementById('utc-clock').textContent = `${uh}:${um}:${us}`;
 
-      // KST (UTC+9)
       const kstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
       const kh = String(kstDate.getUTCHours()).padStart(2, '0');
       const km = String(kstDate.getUTCMinutes()).padStart(2, '0');
