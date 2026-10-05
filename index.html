@@ -445,7 +445,22 @@
         emptyEl.classList.add('hidden');
       }
 
-      targetList.sort((a, b) => a.time.localeCompare(b.time));
+      // 요일별 정렬 순서 지정 (Mon=1, Tue=2, Thu=3)
+      const dayOrder = { 'Mon': 1, 'Tue': 2, 'Thu': 3 };
+
+      targetList.sort((a, b) => {
+        const dayA = a.time.substring(0, 3);
+        const dayB = b.time.substring(0, 3);
+        const orderA = dayOrder[dayA] || 99;
+        const orderB = dayOrder[dayB] || 99;
+
+        // 요일이 다르면 요일 순서대로 정렬
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        // 요일이 같으면 시간 순(문자열)으로 정렬
+        return a.time.localeCompare(b.time);
+      });
 
       targetList.forEach(item => {
         const tr = document.createElement('tr');
@@ -538,7 +553,19 @@
         return;
       }
 
-      const sorted = [...reservations].sort((a, b) => a.time.localeCompare(b.time));
+      // 다운로드 시에도 요일순(월-화-목)으로 정렬 적용
+      const dayOrder = { 'Mon': 1, 'Tue': 2, 'Thu': 3 };
+      const sorted = [...reservations].sort((a, b) => {
+        const dayA = a.time.substring(0, 3);
+        const dayB = b.time.substring(0, 3);
+        const orderA = dayOrder[dayA] || 99;
+        const orderB = dayOrder[dayB] || 99;
+        
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return a.time.localeCompare(b.time);
+      });
 
       const headers = [
         "Time (UTC & KST)",
