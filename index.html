@@ -15,10 +15,6 @@
       font-family: 'Noto Sans KR', sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
-    .active-tab {
-      color: #fbbf24 !important;
-      border-top: 2px solid #fbbf24;
-    }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-20">
@@ -37,7 +33,6 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- 관리자 전용 다운로드 버튼 (초기엔 숨김) -->
         <button id="admin-download-btn" onclick="downloadScheduleCSV()" class="hidden text-[11px] bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500/50 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-colors shadow">
           <i class="fa-solid fa-file-excel"></i> <span class="hidden sm:inline">Download</span>
         </button>
@@ -46,7 +41,7 @@
           <i class="fa-solid fa-user-shield"></i> <span id="admin-btn-text" class="hidden sm:inline">Admin</span>
         </button>
         
-        <!-- 시계 영역 (UTC & KST) -->
+        <!-- 시계 영역 -->
         <div class="flex items-center gap-2 text-[10px] sm:text-[11px] bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-700">
           <div class="flex items-center gap-1">
             <i class="fa-regular fa-clock text-amber-400"></i>
@@ -63,18 +58,265 @@
     </div>
   </header>
 
-  <!-- 메인 콘텐트 메인 뷰 -->
+  <!-- 메인 콘텐트 -->
   <main class="max-w-4xl mx-auto px-4 mt-4 space-y-5">
 
-    <!-- STEP 1: 유저 정보 입력 Profile Input -->
+    <!-- STEP 1 & 2: 프로필 및 시간대 다중/중복 선택 폼 -->
     <section class="bg-slate-800 rounded-xl p-4 border border-slate-700 shadow-lg">
       <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-3">
         <h2 class="text-xs font-bold text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
-          <i class="fa-solid fa-user-gear"></i> STEP 1. Profile / 프로필 정보
+          <i class="fa-solid fa-user-gear"></i> STEP 1. Profile / 프로필 및 관직 선택
         </h2>
         <span class="text-[10px] text-slate-400">Owner Verification / 본인 확인용</span>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-        <div>
-          <label class="block text-
+      <form id="booking-form" onsubmit="handleBookingSubmit(event)">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+          <div>
+            <label class="block text-xs text-slate-300 font-medium mb-1">인게임 닉네임 (In-game Name)</label>
+            <input type="text" id="user-nickname" required placeholder="예: 유리yuri" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-300 font-medium mb-1">연맹명 (Alliance)</label>
+            <input type="text" id="user-alliance" required placeholder="예: SVS" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-300 font-medium mb-1">관직 선택 (Officer Position)</label>
+            <select id="officer-position" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400">
+              <option value="">관직을 선택하세요</option>
+              <option value="국무총리 (Prime Minister)">국무총리 (Prime Minister)</option>
+              <option value="건설부장관 (Minister of Dev)">건설부장관 (Minister of Dev)</option>
+              <option value="과학기술부장관 (Minister of Sci)">과학기술부장관 (Minister of Sci)</option>
+              <option value="내무부장관 (Interior Minister)">내무부장관 (Interior Minister)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- STEP 2: 시간대 다중 선택 (안내 문구 추가) -->
+        <div class="border-t border-slate-700 pt-3 mt-3">
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs text-slate-300 font-medium">
+              예약 시간대 선택 (Time Slots - 복수 및 중복 선택 가능)
+            </label>
+          </div>
+          <p class="text-[11px] text-amber-300/80 mb-2.5 flex items-center gap-1">
+            <i class="fa-solid fa-circle-info"></i> 동일한 시간대에 중복 신청이 가능하며, 여러 시간대를 동시에 선택할 수 있습니다.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs" id="time-slot-checkboxes">
+            <label class="flex items-center gap-2 bg-slate-900 border border-slate-700 p-2 rounded-lg cursor-pointer hover:border-amber-400/50">
+              <input type="checkbox" name="time-slot" value="00:00 - 02:00" class="accent-amber-500 w-4 h-4">
+              <span>00:00 - 02:00 (KST 09:00 - 11:00)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-slate-900 border border-slate-700 p-2 rounded-lg cursor-pointer hover:border-amber-400/50">
+              <input type="checkbox" name="time-slot" value="02:00 - 04:00" class="accent-amber-500 w-4 h-4">
+              <span>02:00 - 04:00 (KST 11:00 - 13:00)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-slate-900 border border-slate-700 p-2 rounded-lg cursor-pointer hover:border-amber-400/50">
+              <input type="checkbox" name="time-slot" value="04:00 - 06:00" class="accent-amber-500 w-4 h-4">
+              <span>04:00 - 06:00 (KST 13:00 - 15:00)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-slate-900 border border-slate-700 p-2 rounded-lg cursor-pointer hover:border-amber-400/50">
+              <input type="checkbox" name="time-slot" value="06:00 - 08:00" class="accent-amber-500 w-4 h-4">
+              <span>06:00 - 08:00 (KST 15:00 - 17:00)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-slate-900 border border-slate-700 p-2 rounded-lg cursor-pointer hover:border-amber-400/50">
+              <input type="checkbox" name="time-slot" value="08:00 - 10:00" class="accent-amber-500 w-4 h-4">
+              <span>08:00 - 10:00 (KST 17:00 - 19:00)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-slate-900 border border-slate-700 p-2 rounded-lg cursor-pointer hover:border-amber-400/50">
+              <input type="checkbox" name="time-slot" value="10:00 - 12:00" class="accent-amber-500 w-4 h-4">
+              <span>10:00 - 12:00 (KST 19:00 - 21:00)</span>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full mt-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs transition-colors shadow">
+          관직 예약하기 (Submit Booking)
+        </button>
+      </form>
+    </section>
+
+    <!-- 현황 리스트 -->
+    <section class="bg-slate-800 rounded-xl p-4 border border-slate-700 shadow-lg">
+      <h2 class="text-xs font-bold text-amber-400 mb-3 flex items-center gap-1.5 uppercase">
+        <i class="fa-solid fa-list-check"></i> 현재 예약 현황 (Current Bookings)
+      </h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-900 text-amber-300 border-b border-slate-700">
+            <tr>
+              <th class="p-2">닉네임</th>
+              <th class="p-2">연맹</th>
+              <th class="p-2">관직</th>
+              <th class="p-2">시간대 (UTC)</th>
+              <th class="p-2">관리</th>
+            </tr>
+          </thead>
+          <tbody id="booking-list-body">
+            <!-- 예약 목록 동적 처리 -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let bookings = JSON.parse(localStorage.getItem('svs_bookings')) || [];
+    let isAdmin = false;
+
+    // 실시간 시계
+    function updateClock() {
+      const now = new Date();
+      const utcHours = String(now.getUTCHours()).padStart(2, '0');
+      const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
+      document.getElementById('utc-clock').textContent = `${utcHours}:${utcMinutes}`;
+
+      const kstHours = String((now.getUTCHours() + 9) % 24).padStart(2, '0');
+      const kstMinutes = String(now.getUTCMinutes()).padStart(2, '0');
+      document.getElementById('kst-clock').textContent = `${kstHours}:${kstMinutes}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 다중 및 중복 가능 예약 처리
+    function handleBookingSubmit(event) {
+      event.preventDefault();
+
+      const nickname = document.getElementById('user-nickname').value.trim();
+      const alliance = document.getElementById('user-alliance').value.trim();
+      const position = document.getElementById('officer-position').value;
+
+      const checkedSlots = Array.from(document.querySelectorAll('input[name="time-slot"]:checked'))
+                                .map(cb => cb.value);
+
+      if (!nickname || !alliance || !position) {
+        alert('프로필 정보를 모두 입력해주세요.');
+        return;
+      }
+
+      if (checkedSlots.length === 0) {
+        alert('최소 하나 이상의 시간대를 선택해주세요.');
+        return;
+      }
+
+      // 본인의 완전 동일 중복(동일 닉네임 + 동일 관직 + 동일 시간대)만 걸러냄
+      const duplicateSlots = [];
+      const validSlots = [];
+
+      checkedSlots.forEach(slot => {
+        const isAlreadyBookedByMe = bookings.some(b => 
+          b.nickname === nickname && b.position === position && b.timeSlot === slot
+        );
+
+        if (isAlreadyBookedByMe) {
+          duplicateSlots.push(slot);
+        } else {
+          validSlots.push(slot);
+        }
+      });
+
+      if (duplicateSlots.length > 0) {
+        alert(`다음 시간대는 이미 본인이 동일하게 예약하셨습니다:\n- ${duplicateSlots.join('\n- ')}`);
+        if (validSlots.length === 0) return;
+      }
+
+      validSlots.forEach(slot => {
+        bookings.push({
+          id: Date.now() + Math.random(),
+          nickname,
+          alliance,
+          position,
+          timeSlot: slot
+        });
+      });
+
+      saveAndRender();
+      document.getElementById('booking-form').reset();
+      alert(`${validSlots.length}개의 시간대 예약이 추가되었습니다!`);
+    }
+
+    // 예약 삭제
+    function deleteBooking(id) {
+      if (confirm('해당 예약을 취소하시겠습니까?')) {
+        bookings = bookings.filter(item => item.id !== id);
+        saveAndRender();
+      }
+    }
+
+    // 목록 랜더링
+    function saveAndRender() {
+      localStorage.setItem('svs_bookings', JSON.stringify(bookings));
+      const tbody = document.getElementById('booking-list-body');
+      tbody.innerHTML = '';
+
+      if (bookings.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-500">현재 예약된 관직이 없습니다.</td></tr>`;
+        return;
+      }
+
+      bookings.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-700/50 hover:bg-slate-800/50';
+        tr.innerHTML = `
+          <td class="p-2 font-medium text-slate-200">${escapeHtml(item.nickname)}</td>
+          <td class="p-2 text-slate-400">${escapeHtml(item.alliance)}</td>
+          <td class="p-2 text-amber-300 font-semibold">${escapeHtml(item.position)}</td>
+          <td class="p-2 text-emerald-300">${escapeHtml(item.timeSlot)}</td>
+          <td class="p-2">
+            <button onclick="deleteBooking(${item.id})" class="text-rose-400 hover:text-rose-300 text-[11px] bg-rose-950/40 border border-rose-800/40 px-2 py-0.5 rounded">
+              취소
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 관리자 모드
+    function toggleAdminLogin() {
+      isAdmin = !isAdmin;
+      const downloadBtn = document.getElementById('admin-download-btn');
+      const adminBtnText = document.getElementById('admin-btn-text');
+
+      if (isAdmin) {
+        downloadBtn.classList.remove('hidden');
+        adminBtnText.textContent = 'Admin ON';
+        alert('관리자 모드가 활성화되었습니다.');
+      } else {
+        downloadBtn.classList.add('hidden');
+        adminBtnText.textContent = 'Admin';
+      }
+    }
+
+    // CSV 다운로드
+    function downloadScheduleCSV() {
+      if (bookings.length === 0) {
+        alert('다운로드할 데이터가 없습니다.');
+        return;
+      }
+
+      let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+      csvContent += "닉네임,연맹,관직,시간대(UTC)\n";
+
+      bookings.forEach(b => {
+        csvContent += `"${b.nickname}","${b.alliance}","${b.position}","${b.timeSlot}"\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `SVS_Officer_Schedule_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    saveAndRender();
+  </script>
+</body>
+</html>
