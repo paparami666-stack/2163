@@ -19,6 +19,11 @@
       color: #fbbf24 !important;
       border-top: 2px solid #fbbf24;
     }
+    /* 다중 선택 드롭다운 커스텀 스크롤바 */
+    select[multiple] option:checked {
+      background-color: #374151 !important;
+      color: #fbbf24 !important;
+    }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-20">
@@ -139,12 +144,12 @@
               <span class="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">MON / 월요일</span>
               <span class="text-[10px] text-slate-400">Construction / 건설</span>
             </div>
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-bold text-white">Vice-President / 부집행관</h3>
-              <span class="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/40">중복선택 가능</span>
-            </div>
-            <label class="block text-[11px] text-slate-400 mb-1">Select Slot / 시간 선택 <span class="text-[10px] text-emerald-400/80">(중복 신청 가능)</span></label>
-            <select id="slot-mon" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 mb-3 focus:outline-none focus:border-emerald-400"></select>
+            <h3 class="text-sm font-bold text-white mb-1 flex items-center">
+              Vice-President / 부집행관
+              <span class="text-[10px] text-amber-300 font-normal ml-1.5">(시간 중복 허용 가능)</span>
+            </h3>
+            <label class="block text-[11px] text-slate-400 mb-1">Select Slots / 시간 선택 (다중 선택 가능)</label>
+            <select id="slot-mon" multiple size="5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 mb-3 focus:outline-none focus:border-emerald-400"></select>
           </div>
           <button onclick="bookOffice('Vice-President(Mon_Const)', 'slot-mon', this)" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg text-xs transition-colors shadow flex justify-center items-center">
             <span>Book Mon Slot / 월요일 예약</span>
@@ -158,12 +163,12 @@
               <span class="text-[11px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/30">TUE / 화요일</span>
               <span class="text-[10px] text-slate-400">Research / 연구</span>
             </div>
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-bold text-white">Vice-President / 부집행관</h3>
-              <span class="text-[10px] font-semibold text-blue-400 bg-blue-950/80 px-1.5 py-0.5 rounded border border-blue-500/40">중복선택 가능</span>
-            </div>
-            <label class="block text-[11px] text-slate-400 mb-1">Select Slot / 시간 선택 <span class="text-[10px] text-blue-400/80">(중복 신청 가능)</span></label>
-            <select id="slot-tue" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 mb-3 focus:outline-none focus:border-blue-400"></select>
+            <h3 class="text-sm font-bold text-white mb-1 flex items-center">
+              Vice-President / 부집행관
+              <span class="text-[10px] text-amber-300 font-normal ml-1.5">(시간 중복 허용 가능)</span>
+            </h3>
+            <label class="block text-[11px] text-slate-400 mb-1">Select Slots / 시간 선택 (다중 선택 가능)</label>
+            <select id="slot-tue" multiple size="5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 mb-3 focus:outline-none focus:border-blue-400"></select>
           </div>
           <button onclick="bookOffice('Vice-President(Tue_Research)', 'slot-tue', this)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition-colors shadow flex justify-center items-center">
             <span>Book Tue Slot / 화요일 예약</span>
@@ -177,12 +182,12 @@
               <span class="text-[11px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/30">THU / 목요일</span>
               <span class="text-[10px] text-slate-400">Training / 훈련</span>
             </div>
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-bold text-white">Minister of Education / 교육부</h3>
-              <span class="text-[10px] font-semibold text-purple-400 bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-500/40">중복선택 가능</span>
-            </div>
-            <label class="block text-[11px] text-slate-400 mb-1">Select Slot / 시간 선택 <span class="text-[10px] text-purple-400/80">(중복 신청 가능)</span></label>
-            <select id="slot-thu" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 mb-3 focus:outline-none focus:border-purple-400"></select>
+            <h3 class="text-sm font-bold text-white mb-1 flex items-center">
+              Minister of Education / 교육부
+              <span class="text-[10px] text-amber-300 font-normal ml-1.5">(시간 중복 허용 가능)</span>
+            </h3>
+            <label class="block text-[11px] text-slate-400 mb-1">Select Slots / 시간 선택 (다중 선택 가능)</label>
+            <select id="slot-thu" multiple size="5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 mb-3 focus:outline-none focus:border-purple-400"></select>
           </div>
           <button onclick="bookOffice('Minister(Thu_Train)', 'slot-thu', this)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-lg text-xs transition-colors shadow flex justify-center items-center">
             <span>Book Thu Slot / 목요일 예약</span>
@@ -332,7 +337,7 @@
       const select = document.getElementById(selectId);
       if (!select) return;
 
-      // 시간대 중복 예약 허용을 위해 모든 옵션을 비활성화하지 않고 항상 활성화 상태로 유지합니다.
+      // 시간대 중복 예약 허용을 위해 옵션을 비활성화하지 않고 그대로 둡니다.
       Array.from(select.options).forEach(opt => {
         opt.disabled = false;
         opt.textContent = opt.value;
@@ -356,39 +361,48 @@
         return;
       }
 
-      const timeSlot = document.getElementById(selectId).value;
+      const select = document.getElementById(selectId);
+      const selectedOptions = Array.from(select.selectedOptions);
 
-      // 예약 ID 생성
-      const uniqueId = 'res-' + Date.now() + '-' + Math.floor(Math.random()*1000);
-
-      const newBooking = {
-        id: uniqueId,
-        alliance,
-        nickname,
-        gameId,
-        smelt: document.getElementById('res-smelt').value || '0',
-        dust: document.getElementById('res-dust').value || '0',
-        research: document.getElementById('res-research').value || '0',
-        train: document.getElementById('res-train').value || '0',
-        common: document.getElementById('res-common').value || '0',
-        buff: buffName,
-        time: timeSlot,
-        createdAt: Date.now()
-      };
+      if (selectedOptions.length === 0) {
+        alert("Please select at least one time slot!\n최소 하나의 시간을 선택해주세요!");
+        return;
+      }
 
       // 버튼 상태 변경
       const originalText = btnElement.innerHTML;
       btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Booking...';
       btnElement.disabled = true;
 
-      // 구글 시트로 POST 전송
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'book', data: newBooking })
-      })
-      .then(res => res.json())
-      .then(result => {
-        alert(`[${buffName}] ${timeSlot} Reserved Successfully!\n예약이 완료되었습니다!`);
+      // 다중 선택된 시간대에 대한 예약 생성 목록
+      const promises = selectedOptions.map(opt => {
+        const timeSlot = opt.value;
+        const uniqueId = 'res-' + Date.now() + '-' + Math.floor(Math.random()*10000);
+
+        const newBooking = {
+          id: uniqueId,
+          alliance,
+          nickname,
+          gameId,
+          smelt: document.getElementById('res-smelt').value || '0',
+          dust: document.getElementById('res-dust').value || '0',
+          research: document.getElementById('res-research').value || '0',
+          train: document.getElementById('res-train').value || '0',
+          common: document.getElementById('res-common').value || '0',
+          buff: buffName,
+          time: timeSlot,
+          createdAt: Date.now()
+        };
+
+        return fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'book', data: newBooking })
+        });
+      });
+
+      Promise.all(promises)
+      .then(() => {
+        alert(`[${buffName}] ${selectedOptions.length}개 시간대 예약이 성공적으로 완료되었습니다!`);
         loadDataFromSheet(); // 최신 목록 새로고침
         switchTab('my'); // 내 예약 탭으로 자동 이동
       })
